@@ -1,8 +1,8 @@
 package models
 
 type Distributor struct {
-	Name string
+	Name         string
 	IncludedArea []City
 	ExcludedArea []City
-
+	Parent       string
 }
