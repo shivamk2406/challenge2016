@@ -12,5 +12,5 @@ type DistributorService interface {
 	GetDistributor(ctx context.Context, name string) (*models.Distributor, error)
 
 	//Applications
-	CheckDistributorPermissions() bool
+	CheckDistributorPermissions(ctx context.Context, permissions *models.Permission) bool
 }

@@ -27,8 +27,8 @@ func (s *Service) CreateDistributor(ctx context.Context, distributor *models.Dis
 		return nil, err
 	}
 
-	distributor.ExcludedArea=s.populateLocation(ctx, distributor.ExcludedArea)
-	distributor.IncludedArea=s.populateLocation(ctx, distributor.IncludedArea)
+	distributor.ExcludedArea = s.populateLocation(ctx, distributor.ExcludedArea)
+	distributor.IncludedArea = s.populateLocation(ctx, distributor.IncludedArea)
 
 	if distributor.Parent != nil {
 		isAllowed := s.checkParentLocationPermissions(ctx, distributor)
@@ -52,8 +52,36 @@ func (s *Service) GetDistributor(ctx context.Context, name string) (*models.Dist
 	return s.repo.GetDistributor(ctx, name)
 }
 
-func (s *Service) CheckDistributorPermissions() bool {
-	return false
+func (s *Service) CheckDistributorPermissions(ctx context.Context, permissions *models.Permission) bool {
+	if permissions == nil || permissions.City == nil {
+		return false
+	}
+
+	distributor, _ := s.repo.GetDistributor(ctx, strings.ToUpper(*&permissions.Name))
+	if distributor == nil {
+		return false
+	}
+
+	inlcudedLocAllowed := getLocationPermission(distributor.IncludedArea, *permissions.City)
+	if !inlcudedLocAllowed {
+		return false
+	}
+
+	for {
+		excludedLocAllowed := getLocationPermission(distributor.ExcludedArea, *permissions.City)
+		if excludedLocAllowed {
+			return false
+		}
+
+		if distributor.Parent != nil {
+			distributor, _ = s.repo.GetDistributor(ctx, strings.ToUpper(*distributor.Parent))
+		} else {
+			break
+		}
+	}
+
+
+	return true
 }
 
 func getLocationPermission(distributorLoc []models.City, loc models.City) bool {
@@ -89,13 +117,13 @@ func (s *Service) checkParentLocationPermissions(ctx context.Context, distributo
 	return true
 }
 
-func(s *Service) populateLocation(ctx context.Context ,loc  []models.City) []models.City{
-	for i := range loc{
-		if loc[i].CityName != ""{
-			loc[i] = *s.repo.GetLocationByCity(ctx ,loc[i].CityName)
-		}else if loc[i].ProvinceName != ""{
+func (s *Service) populateLocation(ctx context.Context, loc []models.City) []models.City {
+	for i := range loc {
+		if loc[i].CityName != "" {
+			loc[i] = *s.repo.GetLocationByCity(ctx, loc[i].CityName)
+		} else if loc[i].ProvinceName != "" {
 			loc[i] = *s.repo.GetLocationByProvince(ctx, loc[i].ProvinceName)
-		}else if loc[i].CountryName != ""{
+		} else if loc[i].CountryName != "" {
 			loc[i] = *s.repo.GetLocationByCountry(ctx, loc[i].CountryName)
 		}
 	}
