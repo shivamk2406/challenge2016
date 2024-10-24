@@ -37,8 +37,17 @@ func NewDistributorRepo() API {
 	cityMap := make(map[string]*models.City)
 
 	for _, city := range cities {
-		countryMap[strings.ToUpper(city.CountryName)] = city
-		provinceMap[strings.ToUpper(city.ProvinceName)] = city
+		countryMap[strings.ToUpper(city.CountryName)] = &models.City{
+			CountryCode: city.CountryCode,
+			CountryName: city.CountryName,
+		}
+		provinceMap[strings.ToUpper(city.ProvinceName)] = &models.City{
+			ProvinceName: city.ProvinceName,
+			ProvinceCode: city.ProvinceCode,
+			CountryCode: city.CountryCode,
+			CountryName: city.CountryName,
+
+		}
 		cityMap[strings.ToUpper(city.CityName)] = city
 	}
 

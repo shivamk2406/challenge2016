@@ -22,9 +22,9 @@ func NewDistributorService(repo repo.API) interfaces.DistributorService {
 
 func (s *Service) CreateDistributor(ctx context.Context, distributor *models.Distributor) (*models.Distributor, error) {
 
-	distributorRes, err := s.repo.GetDistributor(ctx, distributor.Name)
-	if err != nil {
-		return nil, err
+	distributorRes, _ := s.repo.GetDistributor(ctx, distributor.Name)
+	if distributorRes != nil {
+		return nil, errors.New("distributor already exists")
 	}
 
 	distributor.ExcludedArea = s.populateLocation(ctx, distributor.ExcludedArea)
@@ -40,7 +40,7 @@ func (s *Service) CreateDistributor(ctx context.Context, distributor *models.Dis
 		distributor.Parent = &upperCaseName
 	}
 
-	distributorRes, err = s.repo.AddDistributor(ctx, distributorRes)
+	distributorRes, err := s.repo.AddDistributor(ctx, distributor)
 	if err != nil {
 		return nil, err
 	}
