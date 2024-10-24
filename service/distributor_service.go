@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/shivamk2406/challenge2016/interfaces"
@@ -27,17 +28,20 @@ func (s *Service) CreateDistributor(ctx context.Context, distributor *models.Dis
 		return nil, errors.New("distributor already exists")
 	}
 
+	fmt.Println(distributor.ExcludedArea)
+	fmt.Println(distributor.IncludedArea)
+
 	distributor.ExcludedArea = s.populateLocation(ctx, distributor.ExcludedArea)
 	distributor.IncludedArea = s.populateLocation(ctx, distributor.IncludedArea)
 
-	if distributor.Parent != nil {
+	if  len(distributor.Parent)!=0{
 		isAllowed := s.checkParentLocationPermissions(ctx, distributor)
 		if !isAllowed {
 			return nil, errors.New("parent distributor is not authorized for this location")
 		}
 
-		upperCaseName := strings.ToUpper(*distributor.Parent)
-		distributor.Parent = &upperCaseName
+		upperCaseName := strings.ToUpper(distributor.Parent)
+		distributor.Parent = upperCaseName
 	}
 
 	distributorRes, err := s.repo.AddDistributor(ctx, distributor)
@@ -57,6 +61,10 @@ func (s *Service) CheckDistributorPermissions(ctx context.Context, permissions *
 		return false
 	}
 
+	fmt.Println("______________")
+	fmt.Println(permissions.City)
+	fmt.Println("______________")
+
 	distributor, _ := s.repo.GetDistributor(ctx, strings.ToUpper(*&permissions.Name))
 	if distributor == nil {
 		return false
@@ -73,13 +81,12 @@ func (s *Service) CheckDistributorPermissions(ctx context.Context, permissions *
 			return false
 		}
 
-		if distributor.Parent != nil {
-			distributor, _ = s.repo.GetDistributor(ctx, strings.ToUpper(*distributor.Parent))
+		if distributor.Parent == "" {
+			distributor, _ = s.repo.GetDistributor(ctx, strings.ToUpper(distributor.Parent))
 		} else {
 			break
 		}
 	}
-
 
 	return true
 }
@@ -100,14 +107,16 @@ func getLocationPermission(distributorLoc []models.City, loc models.City) bool {
 
 func (s *Service) checkParentLocationPermissions(ctx context.Context, distributor *models.Distributor) bool {
 
-	parent, err := s.repo.GetDistributor(ctx, strings.ToUpper(*&distributor.Name))
-	if err == nil {
+	parent, err := s.repo.GetDistributor(ctx, strings.ToUpper(distributor.Parent))
+	if err != nil {
 		return false
 	}
 
 	for _, location := range distributor.IncludedArea {
 		isExcludedArea := getLocationPermission(parent.ExcludedArea, location)
 		isIncludedArea := getLocationPermission(parent.IncludedArea, location)
+		fmt.Println("isExcluded Area", isExcludedArea)
+		fmt.Println("isIncluded Area", isIncludedArea)
 
 		if !isIncludedArea || isExcludedArea {
 			return false
@@ -118,6 +127,7 @@ func (s *Service) checkParentLocationPermissions(ctx context.Context, distributo
 }
 
 func (s *Service) populateLocation(ctx context.Context, loc []models.City) []models.City {
+	
 	for i := range loc {
 		if loc[i].CityName != "" {
 			loc[i] = *s.repo.GetLocationByCity(ctx, loc[i].CityName)

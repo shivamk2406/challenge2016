@@ -37,18 +37,18 @@ func NewDistributorRepo() API {
 	cityMap := make(map[string]*models.City)
 
 	for _, city := range cities {
-		countryMap[strings.ToUpper(city.CountryName)] = &models.City{
-			CountryCode: city.CountryCode,
-			CountryName: city.CountryName,
+		countryMap[strings.ReplaceAll(strings.ToUpper(city.CountryName), " ", "")] = &models.City{
+			CountryName: strings.ReplaceAll(strings.ToUpper(city.CountryName), " ", ""),
 		}
-		provinceMap[strings.ToUpper(city.ProvinceName)] = &models.City{
-			ProvinceName: city.ProvinceName,
-			ProvinceCode: city.ProvinceCode,
-			CountryCode: city.CountryCode,
-			CountryName: city.CountryName,
-
+		provinceMap[strings.ReplaceAll(strings.ToUpper(city.ProvinceName), " ", "")] = &models.City{
+			ProvinceName: strings.ReplaceAll(strings.ToUpper(city.ProvinceName), " ", ""),
+			CountryName:  strings.ReplaceAll(strings.ToUpper(city.CountryName), " ", ""),
 		}
-		cityMap[strings.ToUpper(city.CityName)] = city
+		cityMap[strings.ReplaceAll(strings.ToUpper(city.CityName), " ", "")] = &models.City{
+			CityName: strings.ReplaceAll(strings.ToUpper(city.CityName), " ", ""),
+			ProvinceName: strings.ReplaceAll(strings.ToUpper(city.ProvinceName), " ", ""),
+			CountryName: strings.ReplaceAll(strings.ToUpper(city.CountryName), " ", ""),
+		}
 	}
 
 	return &DistributorRepo{
@@ -73,6 +73,8 @@ func (d *DistributorRepo) GetDistributor(ctx context.Context, name string) (*mod
 		return nil, fmt.Errorf("no such distributor exist with name %s", name)
 	}
 
+	fmt.Println(name)
+
 	return distributor, nil
 }
 
@@ -82,6 +84,7 @@ func (d *DistributorRepo) GetLocationByCity(ctx context.Context, city string) *m
 
 	loc, ok := d.CityMap[name]
 	if !ok {
+		fmt.Println(fmt.Errorf("no city found with name %s", city))
 		return nil
 	}
 	return loc

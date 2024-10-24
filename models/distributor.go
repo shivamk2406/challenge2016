@@ -4,5 +4,5 @@ type Distributor struct {
 	Name         string
 	IncludedArea []City
 	ExcludedArea []City
-	Parent       *string
+	Parent       string
 }
