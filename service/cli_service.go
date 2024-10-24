@@ -17,6 +17,20 @@ var (
 	areaInput int
 )
 
+const (
+	suceesDistributorMessage = "Distributor %s added suceessfully!!!"
+	suceesDistributorTitle   = "Success!!!!"
+	failureDistributorTitle  = "Failure!!!!"
+	successFoundTitle="Found"
+	failureFoundTitle="Not Found"
+	failureFoundMessage="No such distributor exists with name %s"
+	successFoundMessage="Distributor %s found"
+	permissionSuccessTitle="Allowed"
+	permissionsSuccessMessage="Distributor %s is allowed in given location" 
+	permissionsFailureTitle="Not Allowed"
+	permissionsFailureMessage="Distributor %s is not allowed in given location"
+)
+
 type cliService struct {
 	distributorService interfaces.DistributorService
 }
@@ -70,7 +84,7 @@ func getStarteForm() *huh.Form {
 		))
 }
 
-func(c *cliService) triggerDistributorPermissionsForm() {
+func (c *cliService) triggerDistributorPermissionsForm() {
 	var distributor string
 	var locationString string
 
@@ -86,18 +100,20 @@ func(c *cliService) triggerDistributorPermissionsForm() {
 	}
 	var excludeAreaResp []models.City
 
-	locationArray:=strings.Split(locationString,"-")
+	locationArray := strings.Split(locationString, "-")
 
-	excludeAreaResp=handleArea(locationArray,excludeAreaResp)
+	excludeAreaResp = handleArea(locationArray, excludeAreaResp)
 
-
-
-	isAllowed:=c.distributorService.CheckDistributorPermissions(context.Background(),&models.Permission{
+	isAllowed := c.distributorService.CheckDistributorPermissions(context.Background(), &models.Permission{
 		Name: distributor,
 		City: &excludeAreaResp[0],
 	})
 
-	fmt.Println("Allowed :", isAllowed)
+
+
+	if isAllowed{
+		showDialogPrompt(permissionSuccessTitle,fmt.Sprintf(permissionsSuccessMessage,distributor))
+	}
 	return
 }
 
@@ -117,9 +133,9 @@ func (c *cliService) triggerDistributorDetailsForm() {
 	distributor, err = c.distributorService.GetDistributor(context.Background(), name)
 	if err != nil {
 		fmt.Println(err)
+		showDialogPrompt(failureFoundTitle,fmt.Sprintf(failureFoundMessage,name))
 	}
-
-	fmt.Println(distributor)
+	showDialogPrompt(successFoundTitle,fmt.Sprintf(successFoundMessage,distributor.Name))
 	return
 }
 
@@ -138,12 +154,12 @@ func (c *cliService) triggerDistributorInputForm() {
 
 	var parent string
 
-	form1 := huh.NewForm(
+	parentInputForm := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().Title("enter parent for distributor").Value(&parent),
 		))
 
-	err = form1.Run()
+	err = parentInputForm.Run()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -152,23 +168,29 @@ func (c *cliService) triggerDistributorInputForm() {
 
 	distributor.IncludedArea = includeArea
 	distributor.ExcludedArea = excludeArea
-	distributor.Parent=parent
-
-	fmt.Println(distributor)
+	distributor.Parent = parent
 
 	_, err = c.distributorService.CreateDistributor(context.Background(), &distributor)
 	if err != nil {
 		fmt.Println(err)
+		showDialogPrompt(failureDistributorTitle, fmt.Sprintf(err.Error()))
 	}
 
-	return
+	showDialogPrompt(suceesDistributorTitle, fmt.Sprintf(suceesDistributorMessage, distributor.Name))
 
 }
 
-// BYNIT,ML,IN,Byrnihat,Meghalaya,India
-// KTPAD,OR,IN,Kotpad,Odisha,India
-// GOQPP,BR,IN,Goh,Bihar,India
-// DINOR,MH,IN,Dindori,Maharashtra,India
+func showDialogPrompt(title, message string) {
+	dialogue := huh.NewForm(
+		huh.NewGroup(
+			huh.NewNote().Title(title).Description(message),
+		))
+	err := dialogue.Run()
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func triggerAreaInputForm() ([]models.City, []models.City) {
 
 	var includeAreaResp []models.City
