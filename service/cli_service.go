@@ -110,8 +110,10 @@ func (c *cliService) triggerDistributorPermissionsForm() {
 
 	if isAllowed {
 		showDialogPrompt(permissionSuccessTitle, fmt.Sprintf(permissionsSuccessMessage, distributor))
+	} else {
+		showDialogPrompt(permissionsFailureTitle, fmt.Sprintf(permissionsFailureMessage, distributor))
 	}
-	showDialogPrompt(permissionsFailureTitle, fmt.Sprintf(permissionsFailureMessage, distributor))
+
 	return
 }
 
@@ -131,8 +133,10 @@ func (c *cliService) triggerDistributorDetailsForm() {
 	if err != nil {
 		fmt.Println(err)
 		showDialogPrompt(failureFoundTitle, fmt.Sprintf(failureFoundMessage, name))
+	} else {
+		showDialogPrompt(successFoundTitle, fmt.Sprintf(successFoundMessage, name))
 	}
-	showDialogPrompt(successFoundTitle, fmt.Sprintf(successFoundMessage, name))
+	
 	return
 }
 
@@ -151,7 +155,7 @@ func (c *cliService) triggerDistributorInputForm() {
 
 	var parent string
 
-	triggerParentInputForm(parent, distributor.Name)
+	parent = triggerParentInputForm(parent, distributor.Name)
 
 	includeArea, excludeArea := triggerAreaInputForm(distributor.Name)
 
@@ -159,17 +163,18 @@ func (c *cliService) triggerDistributorInputForm() {
 	distributor.ExcludedArea = excludeArea
 	distributor.Parent = parent
 
-
 	_, err = c.distributorService.CreateDistributor(context.Background(), &distributor)
 	if err != nil {
 		showDialogPrompt(failureDistributorTitle, fmt.Sprintf(err.Error()))
+	} else {
+		showDialogPrompt(suceesDistributorTitle, fmt.Sprintf(suceesDistributorMessage, distributor.Name))
+
 	}
 
-	showDialogPrompt(suceesDistributorTitle, fmt.Sprintf(suceesDistributorMessage, distributor.Name))
-
+	
 }
 
-func triggerParentInputForm(parent, distributor string) {
+func triggerParentInputForm(parent, distributor string) string {
 	parentInputForm := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().Title(fmt.Sprintf("Enter parent name for distributor %s", distributor)).Value(&parent),
@@ -179,6 +184,8 @@ func triggerParentInputForm(parent, distributor string) {
 	if err != nil {
 		showDialogPrompt(genericErrorTitle, err.Error())
 	}
+
+	return parent
 }
 
 func showDialogPrompt(title, message string) {
@@ -207,11 +214,11 @@ func triggerAreaInputForm(distributorName string) ([]models.City, []models.City)
 		}
 		switch areaInput {
 		case 1:
-			includeArea = getAreaInputResponseFromUser(fmt.Sprintf("EXCLUDE for %s: format city-province-state",distributorName))
+			includeArea = getAreaInputResponseFromUser(fmt.Sprintf("INCLUDE for %s: format city-province-state", distributorName))
 			includedAreaArray := strings.Split(includeArea, "-")
 			includeAreaResp = handleArea(includedAreaArray, includeAreaResp)
 		case 2:
-			excludeArea = getAreaInputResponseFromUser(fmt.Sprintf("INCLUDE for %s: format city-province-state",distributorName))
+			excludeArea = getAreaInputResponseFromUser(fmt.Sprintf("EXCLUDE for %s: format city-province-state", distributorName))
 			excludedAreaArray := strings.Split(excludeArea, "-")
 			excludeAreaResp = handleArea(excludedAreaArray, excludeAreaResp)
 		case 3:

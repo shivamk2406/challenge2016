@@ -74,7 +74,7 @@ func (s *Service) CheckDistributorPermissions(ctx context.Context, permissions *
 			return false
 		}
 
-		if distributor.Parent == "" {
+		if distributor.Parent != "" {
 			distributor, _ = s.repo.GetDistributor(ctx, strings.ToUpper(distributor.Parent))
 		} else {
 			break
