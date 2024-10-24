@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/shivamk2406/challenge2016/interfaces"
@@ -28,8 +27,6 @@ func (s *Service) CreateDistributor(ctx context.Context, distributor *models.Dis
 		return nil, errors.New("distributor already exists")
 	}
 
-	fmt.Println(distributor.ExcludedArea)
-	fmt.Println(distributor.IncludedArea)
 
 	distributor.ExcludedArea = s.populateLocation(ctx, distributor.ExcludedArea)
 	distributor.IncludedArea = s.populateLocation(ctx, distributor.IncludedArea)
@@ -60,10 +57,6 @@ func (s *Service) CheckDistributorPermissions(ctx context.Context, permissions *
 	if permissions == nil || permissions.City == nil {
 		return false
 	}
-
-	fmt.Println("______________")
-	fmt.Println(permissions.City)
-	fmt.Println("______________")
 
 	distributor, _ := s.repo.GetDistributor(ctx, strings.ToUpper(*&permissions.Name))
 	if distributor == nil {
@@ -115,8 +108,6 @@ func (s *Service) checkParentLocationPermissions(ctx context.Context, distributo
 	for _, location := range distributor.IncludedArea {
 		isExcludedArea := getLocationPermission(parent.ExcludedArea, location)
 		isIncludedArea := getLocationPermission(parent.IncludedArea, location)
-		fmt.Println("isExcluded Area", isExcludedArea)
-		fmt.Println("isIncluded Area", isIncludedArea)
 
 		if !isIncludedArea || isExcludedArea {
 			return false

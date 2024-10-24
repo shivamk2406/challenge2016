@@ -73,8 +73,6 @@ func (d *DistributorRepo) GetDistributor(ctx context.Context, name string) (*mod
 		return nil, fmt.Errorf("no such distributor exist with name %s", name)
 	}
 
-	fmt.Println(name)
-
 	return distributor, nil
 }
 

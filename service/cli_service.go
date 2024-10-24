@@ -12,23 +12,22 @@ import (
 
 var (
 	input     int
-	state     string
-	textInput string
 	areaInput int
 )
 
 const (
-	suceesDistributorMessage = "Distributor %s added suceessfully!!!"
-	suceesDistributorTitle   = "Success!!!!"
-	failureDistributorTitle  = "Failure!!!!"
-	successFoundTitle="Found"
-	failureFoundTitle="Not Found"
-	failureFoundMessage="No such distributor exists with name %s"
-	successFoundMessage="Distributor %s found"
-	permissionSuccessTitle="Allowed"
-	permissionsSuccessMessage="Distributor %s is allowed in given location" 
-	permissionsFailureTitle="Not Allowed"
-	permissionsFailureMessage="Distributor %s is not allowed in given location"
+	suceesDistributorMessage  = "Distributor %s added suceessfully!!!"
+	suceesDistributorTitle    = "Success!!!!"
+	failureDistributorTitle   = "Failure!!!!"
+	successFoundTitle         = "Found"
+	failureFoundTitle         = "Not Found"
+	failureFoundMessage       = "No such distributor exists with name %s"
+	successFoundMessage       = "Distributor %s found"
+	permissionSuccessTitle    = "Allowed"
+	permissionsSuccessMessage = "Distributor %s is allowed in given location"
+	permissionsFailureTitle   = "Not Allowed"
+	permissionsFailureMessage = "Distributor %s is not allowed in given location"
+	genericErrorTitle         = "Error"
 )
 
 type cliService struct {
@@ -47,7 +46,7 @@ func (c *cliService) RenderCli() {
 		form := getStarteForm()
 		err := form.Run()
 		if err != nil {
-			fmt.Println(err)
+			showDialogPrompt(genericErrorTitle, err.Error())
 		}
 
 		switch input {
@@ -73,13 +72,13 @@ func getStarteForm() *huh.Form {
 		huh.NewGroup(
 			huh.NewSelect[int]().
 				Options(
-					huh.NewOption("1. Add Distributor:", 1),
-					huh.NewOption("2. Get Distributor:", 2),
-					huh.NewOption("3. Get Distributor Permission:", 3),
+					huh.NewOption("1. Add Distributor", 1),
+					huh.NewOption("2. Get Distributor", 2),
+					huh.NewOption("3. Get Distributor Permission", 3),
 					huh.NewOption("4. Exit", 4),
 				).
 				Value(&input).
-				Title("Select the operation").
+				Title("Select operation").
 				Height(15),
 		))
 }
@@ -96,7 +95,7 @@ func (c *cliService) triggerDistributorPermissionsForm() {
 
 	err := form.Run()
 	if err != nil {
-		fmt.Println(err)
+		showDialogPrompt(genericErrorTitle, err.Error())
 	}
 	var excludeAreaResp []models.City
 
@@ -109,16 +108,14 @@ func (c *cliService) triggerDistributorPermissionsForm() {
 		City: &excludeAreaResp[0],
 	})
 
-
-
-	if isAllowed{
-		showDialogPrompt(permissionSuccessTitle,fmt.Sprintf(permissionsSuccessMessage,distributor))
+	if isAllowed {
+		showDialogPrompt(permissionSuccessTitle, fmt.Sprintf(permissionsSuccessMessage, distributor))
 	}
+	showDialogPrompt(permissionsFailureTitle, fmt.Sprintf(permissionsFailureMessage, distributor))
 	return
 }
 
 func (c *cliService) triggerDistributorDetailsForm() {
-	var distributor *models.Distributor
 	var name string
 	form := huh.NewForm(
 		huh.NewGroup(
@@ -127,15 +124,15 @@ func (c *cliService) triggerDistributorDetailsForm() {
 
 	err := form.Run()
 	if err != nil {
-		fmt.Println(err)
+		showDialogPrompt(genericErrorTitle, err.Error())
 	}
 
-	distributor, err = c.distributorService.GetDistributor(context.Background(), name)
+	_, err = c.distributorService.GetDistributor(context.Background(), name)
 	if err != nil {
 		fmt.Println(err)
-		showDialogPrompt(failureFoundTitle,fmt.Sprintf(failureFoundMessage,name))
+		showDialogPrompt(failureFoundTitle, fmt.Sprintf(failureFoundMessage, name))
 	}
-	showDialogPrompt(successFoundTitle,fmt.Sprintf(successFoundMessage,distributor.Name))
+	showDialogPrompt(successFoundTitle, fmt.Sprintf(successFoundMessage, name))
 	return
 }
 
@@ -149,35 +146,39 @@ func (c *cliService) triggerDistributorInputForm() {
 
 	err := form.Run()
 	if err != nil {
-		fmt.Println(err)
+		showDialogPrompt(genericErrorTitle, err.Error())
 	}
 
 	var parent string
 
-	parentInputForm := huh.NewForm(
-		huh.NewGroup(
-			huh.NewInput().Title("enter parent for distributor").Value(&parent),
-		))
+	triggerParentInputForm(parent, distributor.Name)
 
-	err = parentInputForm.Run()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	includeArea, excludeArea := triggerAreaInputForm()
+	includeArea, excludeArea := triggerAreaInputForm(distributor.Name)
 
 	distributor.IncludedArea = includeArea
 	distributor.ExcludedArea = excludeArea
 	distributor.Parent = parent
 
+
 	_, err = c.distributorService.CreateDistributor(context.Background(), &distributor)
 	if err != nil {
-		fmt.Println(err)
 		showDialogPrompt(failureDistributorTitle, fmt.Sprintf(err.Error()))
 	}
 
 	showDialogPrompt(suceesDistributorTitle, fmt.Sprintf(suceesDistributorMessage, distributor.Name))
 
+}
+
+func triggerParentInputForm(parent, distributor string) {
+	parentInputForm := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().Title(fmt.Sprintf("Enter parent name for distributor %s", distributor)).Value(&parent),
+		))
+
+	err := parentInputForm.Run()
+	if err != nil {
+		showDialogPrompt(genericErrorTitle, err.Error())
+	}
 }
 
 func showDialogPrompt(title, message string) {
@@ -191,7 +192,7 @@ func showDialogPrompt(title, message string) {
 	}
 }
 
-func triggerAreaInputForm() ([]models.City, []models.City) {
+func triggerAreaInputForm(distributorName string) ([]models.City, []models.City) {
 
 	var includeAreaResp []models.City
 	var excludeAreaResp []models.City
@@ -202,15 +203,15 @@ func triggerAreaInputForm() ([]models.City, []models.City) {
 		form := getAreaInputForm()
 		err := form.Run()
 		if err != nil {
-			fmt.Println(err)
+			showDialogPrompt(genericErrorTitle, err.Error())
 		}
 		switch areaInput {
 		case 1:
-			includeArea = getAreaInputResponseFromUser("INCLUDE")
+			includeArea = getAreaInputResponseFromUser(fmt.Sprintf("EXCLUDE for %s: format city-province-state",distributorName))
 			includedAreaArray := strings.Split(includeArea, "-")
 			includeAreaResp = handleArea(includedAreaArray, includeAreaResp)
 		case 2:
-			excludeArea = getAreaInputResponseFromUser("EXCLUDE")
+			excludeArea = getAreaInputResponseFromUser(fmt.Sprintf("INCLUDE for %s: format city-province-state",distributorName))
 			excludedAreaArray := strings.Split(excludeArea, "-")
 			excludeAreaResp = handleArea(excludedAreaArray, excludeAreaResp)
 		case 3:
@@ -222,11 +223,6 @@ func triggerAreaInputForm() ([]models.City, []models.City) {
 		}
 	}
 
-	fmt.Println(includeArea)
-	fmt.Println(excludeArea)
-	for _, city := range includeAreaResp {
-		fmt.Println(city)
-	}
 	return includeAreaResp, excludeAreaResp
 
 }
@@ -237,23 +233,18 @@ func handleArea(includedAreaArray []string, resp []models.City) []models.City {
 		resp = append(resp, models.City{
 			CountryName: strings.ToUpper(includedAreaArray[0]),
 		})
-
-		fmt.Println(includedAreaArray[0], len(includedAreaArray))
 		break
 	case 2:
 		resp = append(resp, models.City{
 			CountryName:  strings.ToUpper(includedAreaArray[1]),
 			ProvinceName: strings.ToUpper(includedAreaArray[0]),
 		})
-		fmt.Println(includedAreaArray[0], len(includedAreaArray))
 	case 3:
 		resp = append(resp, models.City{
 			CountryName:  strings.ToUpper(includedAreaArray[2]),
 			ProvinceName: strings.ToUpper(includedAreaArray[1]),
 			CityName:     strings.ToUpper(includedAreaArray[0]),
 		})
-
-		fmt.Println(includedAreaArray[0], len(includedAreaArray))
 	}
 	return resp
 }
@@ -263,12 +254,12 @@ func getAreaInputForm() *huh.Form {
 	return huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[int]().
-				Options(huh.NewOption("1. Insert include area", 1),
-					huh.NewOption("2. Insert Exclude area", 2),
+				Options(huh.NewOption("1. Insert included area of the form of city-province-country", 1),
+					huh.NewOption("2. Insert excluded area of the form of city-province-country", 2),
 					huh.NewOption("3. Exit", 3)).
 				Value(&areaInput).
 				Title("Select the operation").
-				Height(15),
+				Height(15).WithTheme(huh.ThemeCatppuccin()),
 		))
 }
 
@@ -282,22 +273,7 @@ func getAreaInputResponseFromUser(areaType string) string {
 
 	err := form.Run()
 	if err != nil {
-		fmt.Println(err)
-	}
-
-	return resp
-}
-
-func triggerParentForm() string {
-	var resp string
-
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewInput().Title("enter parent for distributor").Value(&resp),
-		))
-	err := form.Run()
-	if err != nil {
-		fmt.Println(err)
+		showDialogPrompt(genericErrorTitle, err.Error())
 	}
 
 	return resp
